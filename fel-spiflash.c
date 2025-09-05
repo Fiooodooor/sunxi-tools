@@ -87,6 +87,10 @@ void fel_writel(feldev_handle *dev, uint32_t addr, uint32_t val);
 #define H6_CCM_SPI_BGR_OFF          0x96c
 #define H6_CCM_SPI0_GATE_RESET      (1 << 0 | 1 << 16)
 
+#define A733_CCM_SPI0_CLK_OFF         0xF00
+#define A733_CCM_SPI_BGR_OFF          0xF04
+#define A733_CCM_SPI0_GATE_RESET      (1 << 0 | 1 << 16)
+
 #define SUN4I_CTL_ENABLE            (1 << 0)
 #define SUN4I_CTL_MASTER            (1 << 1)
 #define SUN4I_CTL_TF_RST            (1 << 8)
@@ -118,6 +122,15 @@ void fel_writel(feldev_handle *dev, uint32_t addr, uint32_t val);
 #define CCM_SPI0_CLK_DIV_BY_6       (0x1002)
 #define CCM_SPI0_CLK_DIV_BY_32      (0x100f)
 
+static uint32_t get_spl_addr(soc_info_t *soc_info)
+{
+	/* Allwinner A733 */
+	if (soc_info->soc_id == 0x1903)
+		return 0x52000;
+
+	return soc_info->spl_addr;
+}
+
 static uint32_t spi_base(feldev_handle *dev)
 {
 	return dev->soc_info->spi_base;
@@ -134,8 +147,14 @@ static void gpio_set_cfgpin(feldev_handle *dev, int port_num, int pin_num,
 	uint32_t reg;
 
 	cfg_reg = dev->soc_info->gpio_base;
+
+	if (dev->soc_info->flags & GPIO_NCAT3)
+		cfg_reg += 0x80;
+
 	if (dev->soc_info->flags & GPIO_NCAT2)
 		cfg_reg += port_num * 0x30;
+	else if (dev->soc_info->flags & GPIO_NCAT3)
+		cfg_reg += port_num * 0x80;
 	else
 		cfg_reg += port_num * 0x24;
 	cfg_reg += 4 * (pin_num / 8);
@@ -199,6 +218,10 @@ static bool spi0_init(feldev_handle *dev)
 		reg_val = readl(ccu_base + H6_CCM_SPI_BGR_OFF);
 		reg_val |= H6_CCM_SPI0_GATE_RESET;
 		writel(reg_val, ccu_base + H6_CCM_SPI_BGR_OFF);
+	} else if (dev->soc_info->flags & A733_STYLE_CLOCKS) {
+		reg_val = readl(ccu_base + A733_CCM_SPI_BGR_OFF);
+		reg_val |= A733_CCM_SPI0_GATE_RESET;
+		writel(reg_val, ccu_base + A733_CCM_SPI_BGR_OFF);
 	} else {
 		if (spi_is_sun6i(dev)) {
 			/* Deassert SPI0 reset */
@@ -233,6 +256,8 @@ static bool spi0_init(feldev_handle *dev)
 		/* Choose 24MHz from OSC24M and enable clock */
 		if (dev->soc_info->flags & H6_STYLE_CLOCKS)
 			writel(1U << 31, ccu_base + H6_CCM_SPI0_CLK_OFF);
+		else if (dev->soc_info->flags & A733_STYLE_CLOCKS)
+			writel(1U << 31, ccu_base + A733_CCM_SPI0_CLK_OFF);
 		else
 			writel(1U << 31, ccu_base + CCM_SPI0_CLK_OFF);
 	}
@@ -261,17 +286,19 @@ static bool spi0_init(feldev_handle *dev)
 static void *backup_sram(feldev_handle *dev)
 {
 	soc_info_t *soc_info = dev->soc_info;
-	size_t bufsize = soc_info->scratch_addr - soc_info->spl_addr;
+	uint32_t spl_addr = get_spl_addr(soc_info);
+	size_t bufsize = soc_info->scratch_addr - spl_addr;
 	void *buf = malloc(bufsize);
-	aw_fel_read(dev, soc_info->spl_addr, buf, bufsize);
+	aw_fel_read(dev, spl_addr, buf, bufsize);
 	return buf;
 }
 
 static void restore_sram(feldev_handle *dev, void *buf)
 {
 	soc_info_t *soc_info = dev->soc_info;
-	size_t bufsize = soc_info->scratch_addr - soc_info->spl_addr;
-	aw_fel_write(dev, buf, soc_info->spl_addr, bufsize);
+	uint32_t spl_addr = get_spl_addr(soc_info);
+	size_t bufsize = soc_info->scratch_addr - spl_addr;
+	aw_fel_write(dev, buf, spl_addr, bufsize);
 	free(buf);
 }
 
@@ -312,17 +339,18 @@ void aw_fel_spiflash_read(feldev_handle *dev,
 	soc_info_t *soc_info = dev->soc_info;
 	void *backup = backup_sram(dev);
 	uint8_t *buf8 = (uint8_t *)buf;
-	size_t max_chunk_size = soc_info->scratch_addr - soc_info->spl_addr;
+	uint32_t spl_addr = get_spl_addr(soc_info);
+	size_t max_chunk_size = soc_info->scratch_addr - spl_addr;
 	if (max_chunk_size > 0x1000)
 		max_chunk_size = 0x1000;
 	uint8_t *cmdbuf = malloc(max_chunk_size);
 	memset(cmdbuf, 0, max_chunk_size);
-	aw_fel_write(dev, cmdbuf, soc_info->spl_addr, max_chunk_size);
+	aw_fel_write(dev, cmdbuf, spl_addr, max_chunk_size);
 
 	if (!spi0_init(dev))
 		return;
 
-	prepare_spi_batch_data_transfer(dev, soc_info->spl_addr);
+	prepare_spi_batch_data_transfer(dev, spl_addr);
 
 	progress_start(progress, len);
 	while (len > 0) {
@@ -339,11 +367,11 @@ void aw_fel_spiflash_read(feldev_handle *dev,
 		cmdbuf[5] = offset;
 
 		if (chunk_size == max_chunk_size - 8)
-			aw_fel_write(dev, cmdbuf, soc_info->spl_addr, 6);
+			aw_fel_write(dev, cmdbuf, spl_addr, 6);
 		else
-			aw_fel_write(dev, cmdbuf, soc_info->spl_addr, chunk_size + 8);
+			aw_fel_write(dev, cmdbuf, spl_addr, chunk_size + 8);
 		aw_fel_remotefunc_execute(dev, NULL);
-		aw_fel_read(dev, soc_info->spl_addr + 6, buf8, chunk_size);
+		aw_fel_read(dev, spl_addr + 6, buf8, chunk_size);
 
 		len -= chunk_size;
 		offset += chunk_size;
@@ -368,7 +396,8 @@ void aw_fel_spiflash_write_helper(feldev_handle *dev,
 {
 	soc_info_t *soc_info = dev->soc_info;
 	uint8_t *buf8 = (uint8_t *)buf;
-	size_t max_chunk_size = soc_info->scratch_addr - soc_info->spl_addr;
+	uint32_t spl_addr = get_spl_addr(soc_info);
+	size_t max_chunk_size = soc_info->scratch_addr - spl_addr;
 	size_t cmd_idx;
 
 	if (max_chunk_size > 0x1000)
@@ -376,7 +405,7 @@ void aw_fel_spiflash_write_helper(feldev_handle *dev,
 	uint8_t *cmdbuf = malloc(max_chunk_size);
 	cmd_idx = 0;
 
-	prepare_spi_batch_data_transfer(dev, soc_info->spl_addr);
+	prepare_spi_batch_data_transfer(dev, spl_addr);
 
 	while (len > 0) {
 		while (len > 0 && max_chunk_size - cmd_idx > program_size + 64) {
@@ -424,7 +453,7 @@ void aw_fel_spiflash_write_helper(feldev_handle *dev,
 		cmdbuf[cmd_idx++] = 0;
 
 		/* Flush */
-		aw_fel_write(dev, cmdbuf, soc_info->spl_addr, cmd_idx);
+		aw_fel_write(dev, cmdbuf, spl_addr, cmd_idx);
 		aw_fel_remotefunc_execute(dev, NULL);
 		cmd_idx = 0;
 	}
@@ -490,15 +519,16 @@ void aw_fel_spiflash_info(feldev_handle *dev)
 	soc_info_t *soc_info = dev->soc_info;
 	const char *manufacturer;
 	unsigned char buf[] = { 0, 4, 0x9F, 0, 0, 0, 0x0, 0x0 };
+	uint32_t spl_addr = get_spl_addr(soc_info);
 	void *backup = backup_sram(dev);
 
 	if (!spi0_init(dev))
 		return;
 
-	aw_fel_write(dev, buf, soc_info->spl_addr, sizeof(buf));
-	prepare_spi_batch_data_transfer(dev, soc_info->spl_addr);
+	aw_fel_write(dev, buf, spl_addr, sizeof(buf));
+	prepare_spi_batch_data_transfer(dev, spl_addr);
 	aw_fel_remotefunc_execute(dev, NULL);
-	aw_fel_read(dev, soc_info->spl_addr, buf, sizeof(buf));
+	aw_fel_read(dev, spl_addr, buf, sizeof(buf));
 
 	restore_sram(dev, backup);
 

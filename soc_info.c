@@ -764,8 +764,13 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.rvbar_reg    = 0x08001004,
-		.icache_fix   = true,
 		.watchdog     = &wd_a523_compat,
+		.gpio_base    = V853_PIO_BASE,
+		.ccu_base     = A733_CCM_BASE,
+		.spi_base     = A733_SPI_BASE,
+		.spi_pins     = SPI_PINS(12, 2, 3, 4),
+		.spi_pinmux   = SUN60I_GPC_SPI0,
+		.flags        = NEEDS_ICACHE_FIX | FLAGS_NCAT3,
 	},{
 		.swap_buffers = NULL /* End of the table */
 	}

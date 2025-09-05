@@ -84,9 +84,12 @@ enum soc_flags {
 	NEEDS_ICACHE_FIX	= BIT(2),
 	H6_STYLE_CLOCKS		= BIT(3),
 	GPIO_NCAT2		= BIT(4),
+	A733_STYLE_CLOCKS		= BIT(5),
+	GPIO_NCAT3		= BIT(6),
 };
 
 #define FLAGS_NCAT2		(GPIO_NCAT2 | H6_STYLE_CLOCKS)
+#define FLAGS_NCAT3		(GPIO_NCAT3 | A733_STYLE_CLOCKS)
 
 #define AW_CCM_BASE		0x01c20000
 #define SUNXI_PIO_BASE		0x01c20800
@@ -97,13 +100,16 @@ enum soc_flags {
 #define V853_PIO_BASE		0x02000000
 #define R329_PIO_BASE		0x02000400
 #define R329_CCM_BASE		0x02001000
+#define A733_CCM_BASE		0x02002000
 #define SUN4I_SPI_BASE		0x01c05000
 #define SUN6I_SPI_BASE		0x01c68000
 #define H6_SPI_BASE		0x05010000
+#define A733_SPI_BASE		0x02540000
 
 #define SUNIV_GPC_SPI0		2
 #define SUNXI_GPC_SPI0		3
 #define SUN50I_GPC_SPI0		4
+#define SUN60I_GPC_SPI0		5
 
 /*
  * Each SoC variant may have its own list of memory buffers to be exchanged
