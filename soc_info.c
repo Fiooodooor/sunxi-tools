@@ -756,7 +756,7 @@ soc_info_t soc_info_table[] = {
 		.soc_id       = 0x1903, /* Allwinner A733 */
 		.name         = "A733",
 		.spl_addr     = 0x47000,
-		.scratch_addr = 0x71000,
+		.scratch_addr = 0x53000,
 		.thunk_addr   = 0x72000, .thunk_size = 0x200,
 		.swap_buffers = a733_sram_swap_buffers,
 		.sram_size    = 180 * 1024,
