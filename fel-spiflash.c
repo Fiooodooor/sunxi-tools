@@ -125,8 +125,9 @@ void fel_writel(feldev_handle *dev, uint32_t addr, uint32_t val);
 static uint32_t get_spl_addr(soc_info_t *soc_info)
 {
 	/* Allwinner A733 */
-	if (soc_info->soc_id == 0x1903)
-		return 0x52000;
+	if (soc_info->soc_id == 0x1903 ||
+		soc_info->soc_id == 0x1890)
+		return soc_info->scratch_addr + 0x1000;
 
 	return soc_info->spl_addr;
 }

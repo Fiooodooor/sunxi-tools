@@ -104,6 +104,7 @@ enum soc_flags {
 #define SUN4I_SPI_BASE		0x01c05000
 #define SUN6I_SPI_BASE		0x01c68000
 #define H6_SPI_BASE		0x05010000
+#define A523_SPI_BASE		0x04025000
 #define A733_SPI_BASE		0x02540000
 
 #define SUNIV_GPC_SPI0		2
