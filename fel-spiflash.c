@@ -280,29 +280,6 @@ static bool spi0_init(feldev_handle *dev)
 	return true;
 }
 
-/*
- * Backup/restore the initial portion of the SRAM, which can be used as
- * a temporary data buffer.
- */
-static void *backup_sram(feldev_handle *dev)
-{
-	soc_info_t *soc_info = dev->soc_info;
-	uint32_t spl_addr = get_spl_addr(soc_info);
-	size_t bufsize = soc_info->scratch_addr - spl_addr;
-	void *buf = malloc(bufsize);
-	aw_fel_read(dev, spl_addr, buf, bufsize);
-	return buf;
-}
-
-static void restore_sram(feldev_handle *dev, void *buf)
-{
-	soc_info_t *soc_info = dev->soc_info;
-	uint32_t spl_addr = get_spl_addr(soc_info);
-	size_t bufsize = soc_info->scratch_addr - spl_addr;
-	aw_fel_write(dev, buf, spl_addr, bufsize);
-	free(buf);
-}
-
 static void prepare_spi_batch_data_transfer(feldev_handle *dev, uint32_t buf)
 {
 	if (spi_is_sun6i(dev)) {
@@ -338,12 +315,9 @@ void aw_fel_spiflash_read(feldev_handle *dev,
 			  progress_cb_t progress)
 {
 	soc_info_t *soc_info = dev->soc_info;
-	void *backup = backup_sram(dev);
 	uint8_t *buf8 = (uint8_t *)buf;
 	uint32_t spl_addr = get_spl_addr(soc_info);
-	size_t max_chunk_size = soc_info->scratch_addr - spl_addr;
-	if (max_chunk_size > 0x1000)
-		max_chunk_size = 0x1000;
+	size_t max_chunk_size = 0x1000;
 	uint8_t *cmdbuf = malloc(max_chunk_size);
 	memset(cmdbuf, 0, max_chunk_size);
 	aw_fel_write(dev, cmdbuf, spl_addr, max_chunk_size);
@@ -381,7 +355,6 @@ void aw_fel_spiflash_read(feldev_handle *dev,
 	}
 
 	free(cmdbuf);
-	restore_sram(dev, backup);
 }
 
 /*
@@ -398,11 +371,8 @@ void aw_fel_spiflash_write_helper(feldev_handle *dev,
 	soc_info_t *soc_info = dev->soc_info;
 	uint8_t *buf8 = (uint8_t *)buf;
 	uint32_t spl_addr = get_spl_addr(soc_info);
-	size_t max_chunk_size = soc_info->scratch_addr - spl_addr;
+	size_t max_chunk_size  = 0x1000;
 	size_t cmd_idx;
-
-	if (max_chunk_size > 0x1000)
-		max_chunk_size = 0x1000;
 	uint8_t *cmdbuf = malloc(max_chunk_size);
 	cmd_idx = 0;
 
@@ -466,7 +436,6 @@ void aw_fel_spiflash_write(feldev_handle *dev,
 			   uint32_t offset, void *buf, size_t len,
 			   progress_cb_t progress)
 {
-	void *backup = backup_sram(dev);
 	uint8_t *buf8 = (uint8_t *)buf;
 
 	spi_flash_info_t *flash_info = &default_spi_flash_info; /* FIXME */
@@ -508,8 +477,6 @@ void aw_fel_spiflash_write(feldev_handle *dev,
 		buf8   += write_count;
 		progress_update(write_count);
 	}
-
-	restore_sram(dev, backup);
 }
 
 /*
@@ -521,7 +488,6 @@ void aw_fel_spiflash_info(feldev_handle *dev)
 	const char *manufacturer;
 	unsigned char buf[] = { 0, 4, 0x9F, 0, 0, 0, 0x0, 0x0 };
 	uint32_t spl_addr = get_spl_addr(soc_info);
-	void *backup = backup_sram(dev);
 
 	if (!spi0_init(dev))
 		return;
@@ -530,8 +496,6 @@ void aw_fel_spiflash_info(feldev_handle *dev)
 	prepare_spi_batch_data_transfer(dev, spl_addr);
 	aw_fel_remotefunc_execute(dev, NULL);
 	aw_fel_read(dev, spl_addr, buf, sizeof(buf));
-
-	restore_sram(dev, backup);
 
 	/* Assume that the MISO pin is either pulled up or down */
 	if (buf[5] == 0x00 || buf[5] == 0xFF) {
