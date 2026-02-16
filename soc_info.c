@@ -151,6 +151,12 @@ sram_swap_buffers h616_sram_swap_buffers[] = {
 	{ .size = 0 }  /* End of the table */
 };
 
+/* H713 uses SRAM A2-based memory layout with scratch at 0x121000 */
+sram_swap_buffers h713_sram_swap_buffers[] = {
+	{ .buf1 = 0x121000, .buf2 = 0x11e000, .size = 0x1000 },
+	{ .size = 0 }  /* End of the table */
+};
+
 sram_swap_buffers a133_sram_swap_buffers[] = {
 	{ .buf1 = 0x21000, .buf2 = 0x40000, .size = 0x400 },
 	{ .size = 0 }  /* End of the table */
@@ -577,6 +583,21 @@ soc_info_t soc_info_table[] = {
 		.rvbar_reg    = 0x08100040,
 		.watchdog     = &wd_h6_compat,
 	},{
+		.soc_id       = 0x1860, /* Allwinner H713 (H616 variant) */
+		.name         = "H713",
+		.spl_addr     = 0x104000,  /* H713 SRAM A2 + 0x4000, from boot0.bin header */
+		.scratch_addr = 0x121000,  /* FEL scratch after SPL region */
+		.thunk_addr   = 0x123a00, .thunk_size = 0x200,  /* Thunk near stack */
+		.swap_buffers = h713_sram_swap_buffers,  /* Changed from h616_sram_swap_buffers */
+		.sram_size    = 207 * 1024,
+		.sid_base     = 0x03006000,
+		.sid_offset   = 0x200,
+		.sid_sections = generic_2k_sid_maps,
+		.rvbar_reg    = 0x09010040,
+		.rvbar_reg_alt= 0x08100040,
+		.ver_reg      = 0x03000024,
+ 		.watchdog     = &wd_h6_compat,
+ 	},{
 		.soc_id       = 0x1886, /* Allwinner V853 */
 		.name         = "V853",
 		.spl_addr     = 0x20000,

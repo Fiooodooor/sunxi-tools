@@ -102,13 +102,32 @@ static void usb_bulk_recv(libusb_device_handle *usb, int ep, void *data,
 			  int length)
 {
 	int rc, recv;
+	
+	/* H713 BROM workaround: allocate larger buffer for small reads */
+	unsigned char temp_buffer[64];
+	unsigned char *recv_ptr = data;
+	int buffer_size = length;
+	
+	if (length <= 8) {
+		recv_ptr = temp_buffer;
+		buffer_size = 64;  /* H713 sends more than requested for status */
+	}
+	
 	while (length > 0) {
-		rc = libusb_bulk_transfer(usb, ep, data, length,
+		rc = libusb_bulk_transfer(usb, ep, recv_ptr, buffer_size,
 					  &recv, USB_TIMEOUT);
 		if (rc != 0)
 			usb_error(rc, "usb_bulk_recv()", 2);
-		length -= recv;
-		data += recv;
+		
+		/* For small reads, copy only requested amount and exit */
+		if (recv_ptr == temp_buffer) {
+			int copy_len = (recv < length) ? recv : length;
+			memcpy(data, temp_buffer, copy_len);
+			length = 0;  /* Done */
+		} else {
+			length -= recv;
+			data += recv;
+		}
 	}
 }
 
@@ -155,7 +174,7 @@ static void aw_read_usb_response(feldev_handle *dev)
 	char buf[13];
 	usb_bulk_recv(dev->usb->handle, dev->usb->endpoint_in,
 		      buf, sizeof(buf));
-	assert(strcmp(buf, "AWUS") == 0);
+	assert(strncmp(buf, "AWUS", 4) == 0);
 }
 
 static void aw_usb_write(feldev_handle *dev, const void *data, size_t len,
