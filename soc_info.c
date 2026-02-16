@@ -195,6 +195,12 @@ sram_swap_buffers a523_sram_swap_buffers[] = {
 	{ .buf1 = 0x45000, .buf2 = 0x40200, .size = 0x0400 },
 	{ .size = 0 }  /* End of the table */
 };
+
+sram_swap_buffers a733_sram_swap_buffers[] = {
+	{ .buf1 = 0x47000, .buf2 = 0x72400, .size = 0x1C00 },
+	{ .size = 0 }  /* End of the table */
+};
+
 /*
  * Some SoCs put both stacks, BSS and data segments at the end of a comparably
  * large SRAM, so we don't need to move anything around.
@@ -330,6 +336,10 @@ static const sid_section generic_2k_sid_maps[] = {
 	SID_SECTION(NULL, 0, 0),
 };
 
+/* Pack four pin numbers into one uint32_t, using one byte per pin */
+#define SPI_PINS(p1, p2, p3, p4)	\
+	((p1) << 0 | (p2) << 8 | (p3) << 16 | (p4) << 24)
+
 soc_info_t soc_info_table[] = {
 	{
 		.soc_id       = 0x1623, /* Allwinner A10 */
@@ -338,9 +348,14 @@ soc_info_t soc_info_table[] = {
 		.thunk_addr   = 0xA200, .thunk_size = 0x200,
 		.swap_buffers = a10_a13_a20_sram_swap_buffers,
 		.sram_size    = 48 * 1024,
-		.needs_l2en   = true,
 		.sid_base     = 0x01C23800,
 		.watchdog     = &wd_a10_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN4I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 23),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
+		.flags        = NEEDS_L2EN,
 	},{
 		.soc_id       = 0x1625, /* Allwinner A10s, A13, R8 */
 		.name         = "A13",
@@ -348,9 +363,14 @@ soc_info_t soc_info_table[] = {
 		.thunk_addr   = 0xA200, .thunk_size = 0x200,
 		.swap_buffers = a10_a13_a20_sram_swap_buffers,
 		.sram_size    = 48 * 1024,
-		.needs_l2en   = true,
 		.sid_base     = 0x01C23800,
 		.watchdog     = &wd_a10_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN4I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
+		.flags        = NEEDS_L2EN,
 	},{
 		.soc_id       = 0x1651, /* Allwinner A20 */
 		.name         = "A20",
@@ -361,6 +381,11 @@ soc_info_t soc_info_table[] = {
 		.sid_base     = 0x01C23800,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_a10_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN4I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 23),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
 	},{
 		.soc_id       = 0x1650, /* Allwinner A23 */
 		.name         = "A23",
@@ -371,6 +396,8 @@ soc_info_t soc_info_table[] = {
 		.sid_base     = 0x01C23800,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
 	},{
 		.soc_id       = 0x1633, /* Allwinner A31 */
 		.name         = "A31",
@@ -379,6 +406,8 @@ soc_info_t soc_info_table[] = {
 		.swap_buffers = a31_sram_swap_buffers,
 		.sram_size    = 32 * 1024,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
 	},{
 		.soc_id       = 0x1667, /* Allwinner A33, R16 */
 		.name         = "A33",
@@ -389,6 +418,8 @@ soc_info_t soc_info_table[] = {
 		.sid_base     = 0x01C23800,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
 	},{
 		.soc_id       = 0x1689, /* Allwinner A64 */
 		.name         = "A64",
@@ -404,6 +435,11 @@ soc_info_t soc_info_table[] = {
 		/* Check L.NOP in the OpenRISC reset vector */
 		.needs_smc_workaround_if_zero_word_at_addr = 0x40004,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN6I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUN50I_GPC_SPI0,
 	},{
 		.soc_id       = 0x1639, /* Allwinner A80 */
 		.name         = "A80",
@@ -416,6 +452,8 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_a80,
+		.gpio_base    = A80_PIO_BASE,
+		.ccu_base     = A80_CCM_BASE,
 	},{
 		.soc_id       = 0x1663, /* Allwinner F1C100s (all new sun3i?) */
 		.name         = "F1C100s",
@@ -425,6 +463,11 @@ soc_info_t soc_info_table[] = {
 		.sram_size    = 32 * 1024,
 		/* No SID */
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN4I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUNIV_GPC_SPI0,
 	},{
 		.soc_id       = 0x1673, /* Allwinner A83T */
 		.name         = "A83T",
@@ -437,6 +480,8 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
 	},{
 		.soc_id       = 0x1680, /* Allwinner H3, H2+ */
 		.name         = "H3",
@@ -447,11 +492,16 @@ soc_info_t soc_info_table[] = {
 		.sram_size    = 108 * 1024,
 		.sid_base     = 0x01C14000,
 		.sid_offset   = 0x200,
-		.sid_fix      = true,
 		.sid_sections = h3_sid_maps,
 		/* Check L.NOP in the OpenRISC reset vector */
 		.needs_smc_workaround_if_zero_word_at_addr = 0x40004,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN6I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
+		.flags        = NEEDS_SID_FIX,
 	},{
 		.soc_id       = 0x1681, /* Allwinner V3s */
 		.name         = "V3s",
@@ -463,6 +513,11 @@ soc_info_t soc_info_table[] = {
 		.sid_base     = 0x01C23800,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN6I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
 	},{
 		.soc_id       = 0x1708, /* Allwinner T7 */
 		.name         = "T7",
@@ -475,6 +530,9 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = t7_sid_maps,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1718, /* Allwinner H5 */
 		.name         = "H5",
@@ -490,6 +548,11 @@ soc_info_t soc_info_table[] = {
 		/* Check L.NOP in the OpenRISC reset vector */
 		.needs_smc_workaround_if_zero_word_at_addr = 0x40004,
 		.watchdog     = &wd_h3_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN6I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
 	},{
 		.soc_id       = 0x1701, /* Allwinner R40 */
 		.name         = "R40",
@@ -501,6 +564,11 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = r40_sid_maps,
 		.watchdog     = &wd_a10_compat,
+		.gpio_base    = SUNXI_PIO_BASE,
+		.ccu_base     = AW_CCM_BASE,
+		.spi_base     = SUN4I_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 23),
+		.spi_pinmux   = SUNXI_GPC_SPI0,
 	},{
 		.soc_id       = 0x1719, /* Allwinner A63 */
 		.name         = "A63",
@@ -514,6 +582,9 @@ soc_info_t soc_info_table[] = {
 		.sid_sections = generic_2k_sid_maps,
 		.rvbar_reg    = 0x09010040,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1728, /* Allwinner H6 */
 		.name         = "H6",
@@ -529,6 +600,12 @@ soc_info_t soc_info_table[] = {
 		/* Check L.NOP in the OpenRISC reset vector */
 		.needs_smc_workaround_if_zero_word_at_addr = 0x100004,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.spi_base     = H6_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 2, 3, 5),
+		.spi_pinmux   = SUN50I_GPC_SPI0,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1816, /* Allwinner V536 */
 		.name         = "V536",
@@ -541,6 +618,12 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.spi_base     = H6_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUN50I_GPC_SPI0,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1817, /* Allwinner V831 */
 		.name         = "V831",
@@ -553,6 +636,12 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.spi_base     = H6_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 1, 2, 3),
+		.spi_pinmux   = SUN50I_GPC_SPI0,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1823, /* Allwinner H616 */
 		.name         = "H616",
@@ -568,6 +657,12 @@ soc_info_t soc_info_table[] = {
 		.rvbar_reg_alt= 0x08100040,
 		.ver_reg      = 0x03000024,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.spi_base     = H6_SPI_BASE,
+		.spi_pins     = SPI_PINS(0, 2, 3, 4),
+		.spi_pinmux   = SUN50I_GPC_SPI0,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1851, /* Allwinner R329 */
 		.name         = "R329",
@@ -582,6 +677,9 @@ soc_info_t soc_info_table[] = {
 		.sid_sections = generic_2k_sid_maps,
 		.rvbar_reg    = 0x08100040,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = R329_PIO_BASE,
+		.ccu_base     = R329_CCM_BASE,
+		.flags        = FLAGS_NCAT2,
 	},{
 		.soc_id       = 0x1860, /* Allwinner H713 (H616 variant) */
 		.name         = "H713",
@@ -608,8 +706,10 @@ soc_info_t soc_info_table[] = {
 		.sid_base     = 0x03006000,
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
-		.icache_fix   = true,
 		.watchdog     = &wd_v853_compat,
+		.gpio_base    = V853_PIO_BASE,
+		.ccu_base     = R329_CCM_BASE,
+		.flags        = NEEDS_ICACHE_FIX | FLAGS_NCAT2,
 	},{
 		.soc_id       = 0x1859, /* Allwinner D1/D1s/R528/T113-S3 */
 		.name         = "R528",
@@ -621,8 +721,10 @@ soc_info_t soc_info_table[] = {
 		.sid_base     = 0x03006000,
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
-		.icache_fix   = true,
 		.watchdog     = &wd_v853_compat,
+		.gpio_base    = V853_PIO_BASE,
+		.ccu_base     = R329_CCM_BASE,
+		.flags        = NEEDS_ICACHE_FIX | FLAGS_NCAT2,
 	},{
 		.soc_id       = 0x1721, /* Allwinner V5 */
 		.name         = "V5",
@@ -635,11 +737,14 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.flags        = H6_STYLE_CLOCKS,
 	},{
 		.soc_id       = 0x1890, /* Allwinner A523 */
 		.name         = "A523",
 		.spl_addr     = 0x44000,
-		.scratch_addr = 0x45000,
+		.scratch_addr = 0x46000,
 		.thunk_addr   = 0x40000, .thunk_size = 0x200,
 		.swap_buffers = a523_sram_swap_buffers,
 		.sram_size    = 96 * 1024,
@@ -647,8 +752,13 @@ soc_info_t soc_info_table[] = {
 		.sid_offset   = 0x200,
 		.sid_sections = generic_2k_sid_maps,
 		.rvbar_reg    = 0x08000040,
-		.icache_fix   = true,
 		.watchdog     = &wd_a523_compat,
+		.gpio_base    = V853_PIO_BASE,
+		.ccu_base     = R329_CCM_BASE,
+		.spi_base     = A523_SPI_BASE,
+		.spi_pins     = SPI_PINS(12, 2, 3, 4),
+		.spi_pinmux   = SUN50I_GPC_SPI0,
+		.flags        = NEEDS_ICACHE_FIX | FLAGS_NCAT2,
 	},{
 		.soc_id       = 0x1855, /* Allwinner A133 */
 		.name         = "A133",
@@ -663,6 +773,28 @@ soc_info_t soc_info_table[] = {
 		.rvbar_reg    = 0x08100040,
 		.needs_smc_workaround_if_zero_word_at_addr = 0x100004,
 		.watchdog     = &wd_h6_compat,
+		.gpio_base    = H6_PIO_BASE,
+		.ccu_base     = H6_CCM_BASE,
+		.flags        = H6_STYLE_CLOCKS,
+	},{
+		.soc_id       = 0x1903, /* Allwinner A733 */
+		.name         = "A733",
+		.spl_addr     = 0x47000,
+		.scratch_addr = 0x53000,
+		.thunk_addr   = 0x72000, .thunk_size = 0x200,
+		.swap_buffers = a733_sram_swap_buffers,
+		.sram_size    = 180 * 1024,
+		.sid_base     = 0x03006000,
+		.sid_offset   = 0x200,
+		.sid_sections = generic_2k_sid_maps,
+		.rvbar_reg    = 0x08001004,
+		.watchdog     = &wd_a523_compat,
+		.gpio_base    = V853_PIO_BASE,
+		.ccu_base     = A733_CCM_BASE,
+		.spi_base     = A733_SPI_BASE,
+		.spi_pins     = SPI_PINS(12, 2, 3, 4),
+		.spi_pinmux   = SUN60I_GPC_SPI0,
+		.flags        = NEEDS_ICACHE_FIX | FLAGS_NCAT3,
 	},{
 		.swap_buffers = NULL /* End of the table */
 	}
